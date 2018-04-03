@@ -1,0 +1,86 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font: 13px Helvetica, Arial; }
+      form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
+      form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+      form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+      #messages { list-style-type: none; margin: 0; padding: 0; }
+      #messages li { padding: 5px 10px; }
+      #messages li:nth-child(odd) { background: #eee; }
+    </style>
+  </head>
+  <body>
+    <input type="text" id="nickname" placeholder="Create a username">
+    <button class="save-username">Save</button>
+
+    <h2 class="username"></h2>
+    <ul id="messages"></ul>
+    <p class="typing"></p>
+    <form action="">
+      <input id="m" autocomplete="off" /><button>Send</button>
+    </form>
+
+
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      var socket = io();
+      
+      socket.on('connect message', message => {
+        $('#messages').append($('<li>').text(message));
+      });
+
+      $('.save-username').on('click', () => {
+        const user = $('#nickname').val();
+
+        $('.username').text(user);
+        $('#nickname').remove();
+        $('.save-username').remove();
+      });
+
+      $('form').on('keyup', () => {
+        const value = $('.username').text()
+        const user = value === '' ? 'Anonymous Coward' : value;
+
+        if($('#m').val() !== '') {
+          return socket.emit('typing', user);
+        } 
+
+        socket.emit('no typing', user);        
+      });
+
+      $('form').submit(() => {
+        const value = $('.username').text()
+        const user = value === '' ? 'Anonymous Coward' : value
+
+        socket.emit('chat message', { 
+          user,
+          message: $('#m').val() 
+        });
+
+        $('#m').val('');
+        return false;
+      });
+
+      socket.on('chat message', message => {
+        $('#messages').append($('<li>').text(`${ message.user }: ${ message.message }`));
+      });
+
+      socket.on('typing', user => {
+        $('.typing').text(`${user} is typing...`);
+      });
+
+      socket.on('no typing', () => {
+        $('.typing').text('');
+      });
+
+      socket.on('disconnect message', message => {
+        $('#messages').append($('<li>').text(message));
+      })
+    </script>
+  </body>
+</html>
